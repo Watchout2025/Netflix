@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -7,18 +7,63 @@ import {
   ScrollView, 
   StatusBar, 
   TouchableOpacity, 
-  SafeAreaView 
+  SafeAreaView,
+  ActivityIndicator,
+  Dimensions
 } from 'react-native';
 
-const MOVIES = [
-  { id: 1, title: 'Stranger Things', image: 'https://image.tmdb.org/t/p/w500/x2LSRm21uTExHiBqSdy87P9p1pE.jpg' },
-  { id: 2, title: 'The Witcher', image: 'https://image.tmdb.org/t/p/w500/7vjaCdS6In6KOT2oY6vYvTvQYOk.jpg' },
-  { id: 3, title: 'Money Heist', image: 'https://image.tmdb.org/t/p/w500/reEMJA1uzpG3SZ0KGv7GKE97pU.jpg' },
-  { id: 4, title: 'The Crown', image: 'https://image.tmdb.org/t/p/w500/v9IPrP5vI6f08X33L50KUnC1C92.jpg' },
-  { id: 5, title: 'Bridgerton', image: 'https://image.tmdb.org/t/p/w500/luoKpgVj365hwzM0PSi69q9v9An.jpg' },
-];
+const { width } = Dimensions.get('window');
+
+const API_BASE = 'https://db.videasy.net/3';
+const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
+const BACKDROP_BASE = 'https://image.tmdb.org/t/p/original';
 
 export default function App() {
+  const [trendingMovies, setTrendingMovies] = useState([]);
+  const [trendingTV, setTrendingTV] = useState([]);
+  const [featuredMovie, setFeaturedMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch Trending Movies
+      const movieRes = await fetch(`${API_BASE}/trending/movie/week`);
+      const movieData = await movieRes.json();
+      
+      // Fetch Trending TV
+      const tvRes = await fetch(`${API_BASE}/trending/tv/week`);
+      const tvData = await tvRes.json();
+
+      setTrendingMovies(movieData.results || []);
+      setTrendingTV(tvData.results || []);
+      
+      // Pick a random movie for the Hero banner
+      if (movieData.results && movieData.results.length > 0) {
+        const randomIdx = Math.floor(Math.random() * Math.min(movieData.results.length, 5));
+        setFeaturedMovie(movieData.results[randomIdx]);
+      }
+
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color="#e50914" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -37,32 +82,34 @@ export default function App() {
         </View>
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} bounces={false}>
         {/* Featured Hero */}
-        <View style={styles.heroContainer}>
-          <Image 
-            source={{ uri: 'https://image.tmdb.org/t/p/original/6tfT0Znt7cwzWJpL0pSnNpAuiZ.jpg' }} 
-            style={styles.heroImage} 
-          />
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>SQUID GAME</Text>
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.playButton}>
-                <Text style={styles.playButtonText}>Play</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.listButton}>
-                <Text style={styles.listButtonText}>+ My List</Text>
-              </TouchableOpacity>
+        {featuredMovie && (
+          <View style={styles.heroContainer}>
+            <Image 
+              source={{ uri: `${BACKDROP_BASE}${featuredMovie.backdrop_path}` }} 
+              style={styles.heroImage} 
+            />
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitle}>{featuredMovie.title || featuredMovie.name}</Text>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.playButton}>
+                  <Text style={styles.playButtonText}>▶ Play</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.listButton}>
+                  <Text style={styles.listButtonText}>+ My List</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Movie Rows */}
-        <MovieRow title="Trending Now" movies={MOVIES} />
-        <MovieRow title="Popular on Netflix" movies={MOVIES.slice().reverse()} />
-        <MovieRow title="New Releases" movies={MOVIES} />
+        <MovieRow title="Trending Movies" movies={trendingMovies} />
+        <MovieRow title="Trending TV Shows" movies={trendingTV} />
+        <MovieRow title="Top Rated" movies={[...trendingMovies].reverse()} />
         
-        <View style={{ height: 50 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -74,7 +121,10 @@ const MovieRow = ({ title, movies }) => (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
       {movies.map(movie => (
         <TouchableOpacity key={movie.id} style={styles.movieCard}>
-          <Image source={{ uri: movie.image }} style={styles.movieImage} />
+          <Image 
+            source={{ uri: `${IMAGE_BASE}${movie.poster_path}` }} 
+            style={styles.movieImage} 
+          />
         </TouchableOpacity>
       ))}
     </ScrollView>
@@ -86,6 +136,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     height: 60,
     flexDirection: 'row',
@@ -94,7 +148,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
     position: 'absolute',
-    top: 40,
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
@@ -117,25 +171,30 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: '100%',
-    height: 500,
+    height: width * 1.5,
     marginBottom: 20,
   },
   heroImage: {
     width: '100%',
     height: '100%',
-    opacity: 0.8,
+    opacity: 0.9,
   },
   heroContent: {
     position: 'absolute',
     bottom: 40,
     width: '100%',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingVertical: 20,
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 40,
+    fontSize: 28,
     fontWeight: '900',
     marginBottom: 20,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    textTransform: 'uppercase',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -143,8 +202,8 @@ const styles = StyleSheet.create({
   },
   playButton: {
     backgroundColor: '#fff',
-    paddingHorizontal: 30,
-    paddingVertical: 10,
+    paddingHorizontal: 35,
+    paddingVertical: 8,
     borderRadius: 4,
   },
   playButtonText: {
@@ -155,7 +214,7 @@ const styles = StyleSheet.create({
   listButton: {
     backgroundColor: 'rgba(255,255,255,0.3)',
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 4,
   },
   listButtonText: {
@@ -165,7 +224,7 @@ const styles = StyleSheet.create({
   },
   rowContainer: {
     paddingLeft: 20,
-    marginBottom: 30,
+    marginBottom: 25,
   },
   rowTitle: {
     color: '#fff',
@@ -177,11 +236,12 @@ const styles = StyleSheet.create({
     paddingRight: 20,
   },
   movieCard: {
-    width: 120,
-    height: 180,
+    width: 110,
+    height: 160,
     marginRight: 10,
-    borderRadius: 8,
+    borderRadius: 4,
     overflow: 'hidden',
+    backgroundColor: '#333',
   },
   movieImage: {
     width: '100%',

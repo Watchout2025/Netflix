@@ -1,0 +1,44 @@
+name: Build Android APK (Native)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install dependencies
+        working-directory: ./netflix-native
+        run: npm install
+
+      - name: Export Native Project
+        working-directory: ./netflix-native
+        run: npx expo prebuild --platform android
+
+      - name: Build APK
+        working-directory: ./netflix-native/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netflix-native-debug
+          path: netflix-native/android/app/build/outputs/apk/debug/app-debug.apk

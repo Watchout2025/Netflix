@@ -85,7 +85,10 @@ export default function DetailsScreen({ route, navigation }) {
           </View>
 
           {/* Action Buttons */}
-          <TouchableOpacity style={styles.playButton}>
+          <TouchableOpacity 
+            style={styles.playButton}
+            onPress={() => navigation.navigate('Player', { id, mediaType })}
+          >
             <Text style={styles.playButtonText}>▶ Play</Text>
           </TouchableOpacity>
           

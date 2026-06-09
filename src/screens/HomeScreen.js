@@ -96,7 +96,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.heroContent}>
               <Text style={styles.heroTitle}>{featuredMovie.title || featuredMovie.name}</Text>
               <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.playButton} onPress={() => openDetails(featuredMovie.id, featuredMovie.media_type || 'movie')}>
+                <TouchableOpacity style={styles.playButton} onPress={() => navigation.navigate('Player', { id: featuredMovie.id, mediaType: featuredMovie.media_type || 'movie' })}>
                   <Text style={styles.playButtonText}>▶ Play</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.listButton}>

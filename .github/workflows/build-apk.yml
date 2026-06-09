@@ -17,7 +17,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.4' # Using a slightly newer Node 20 as requested by dependencies
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -31,12 +31,9 @@ jobs:
       - name: Export Native Project
         run: npx expo prebuild --platform android
 
-      - name: Create Assets Directory
-        run: mkdir -p android/app/src/main/assets
-
       - name: Bundle JavaScript
         run: |
-          npx react-native bundle \
+          npx expo export:embed \
             --platform android \
             --dev false \
             --entry-file index.js \
